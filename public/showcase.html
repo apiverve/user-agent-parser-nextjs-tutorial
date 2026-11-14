@@ -1,0 +1,342 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Live demo | APIVerve Template</title>
+<!--
+  The hosted-demo frame for an APIVerve template: the app in a phone or a browser
+  window, morphing between the two. It loads the app at "/" in an iframe and knows
+  nothing else about it, so it works with any template. Your deployed app doesn't
+  need it; open /showcase.html to see it. ?view=desktop opens on the browser frame,
+  and any other query (like ?city=Tokyo) is passed through to the app.
+-->
+<style>
+  :root {
+    --stage-from: #f7f9fc;
+    --stage-to: #e3e9f1;
+    --ink: #142036;
+    --ink-soft: #66738b;
+    --line: #e4e9f1;
+    --bezel: #11151c;
+    --chrome: #f8fafd;
+    --morph: 0.52s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    font-family: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+    color: var(--ink);
+    background: var(--stage-to);
+  }
+
+  /* The stage fills the window exactly; the app scrolls inside the frame, never the page. */
+  .stage {
+    height: 100vh;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 28px 16px 32px;
+    background: radial-gradient(ellipse at 50% 0%, var(--stage-from), var(--stage-to) 65%);
+  }
+
+  .head {
+    flex: none;
+    display: grid;
+    justify-items: center;
+    gap: 10px;
+    margin-bottom: 28px;
+    text-align: center;
+  }
+
+  .head p {
+    margin: 0;
+    font-size: 13px;
+    color: var(--ink-soft);
+  }
+
+  .head a {
+    color: var(--ink);
+    font-weight: 600;
+  }
+
+  .seg {
+    display: inline-flex;
+    padding: 3px;
+    border-radius: 12px;
+    background: #fff;
+    border: 1px solid #d6dde8;
+  }
+
+  .seg button {
+    padding: 7px 18px;
+    border: 0;
+    border-radius: 9px;
+    background: none;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: background-color 0.2s ease, color 0.2s ease;
+  }
+
+  .seg button[aria-pressed="true"] {
+    background: var(--ink);
+    color: #fff;
+  }
+
+  .seg button:focus-visible {
+    outline: 2px solid #3d8bfd;
+    outline-offset: 2px;
+  }
+
+  .slot {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+  }
+
+  /* One frame for both views. Size and scale are set by the script; everything else morphs here. */
+  .device {
+    position: relative;
+    flex: none;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    padding: 11px;
+    border-radius: 54px;
+    background: var(--bezel);
+    box-shadow: 0 40px 90px -30px rgba(20, 35, 70, 0.55), inset 0 0 0 1.5px #2b3240;
+    transform-origin: top center;
+    transition: width var(--morph), height var(--morph), transform var(--morph), padding var(--morph),
+      border-radius var(--morph), background-color var(--morph), box-shadow var(--morph);
+  }
+
+  .device.desktop {
+    padding: 0;
+    border-radius: 16px;
+    background: var(--chrome);
+    box-shadow: 0 40px 90px -30px rgba(20, 35, 70, 0.5), inset 0 0 0 1px rgba(20, 35, 70, 0.08);
+  }
+
+  .chrome {
+    flex: none;
+    height: 0;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 0 16px;
+    overflow: hidden;
+    opacity: 0;
+    border-bottom: 1px solid transparent;
+    transition: height var(--morph), opacity 0.3s ease, border-color var(--morph);
+  }
+
+  .device.desktop .chrome {
+    height: 44px;
+    opacity: 1;
+    border-bottom-color: var(--line);
+  }
+
+  .lights { display: flex; gap: 7px; }
+
+  .lights i {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: #dfe4ec;
+  }
+
+  .url {
+    flex: 1;
+    max-width: 360px;
+    margin: 0 auto;
+    padding: 5px 12px;
+    border-radius: 8px;
+    background: #eef2f7;
+    font-size: 12.5px;
+    text-align: center;
+    color: var(--ink-soft);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .status {
+    position: absolute;
+    top: 11px;
+    left: 11px;
+    right: 11px;
+    z-index: 3;
+    height: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 6px 30px 0;
+    border-radius: 44px 44px 0 0;
+    font-size: 14px;
+    font-weight: 600;
+    transition: opacity 0.25s ease;
+  }
+
+  .notch {
+    position: absolute;
+    left: 50%;
+    top: 22px;
+    z-index: 4;
+    width: 116px;
+    height: 32px;
+    border-radius: 20px;
+    background: var(--bezel);
+    transform: translateX(-50%);
+    transition: opacity 0.25s ease;
+  }
+
+  .device.desktop .status,
+  .device.desktop .notch {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .screen {
+    flex: 1;
+    min-height: 0;
+    padding-top: 42px;
+    border-radius: 44px;
+    overflow: hidden;
+    background: var(--screen, #fff);
+    transition: border-radius var(--morph), padding-top var(--morph);
+  }
+
+  .device.desktop .screen {
+    padding-top: 0;
+    border-radius: 0;
+  }
+
+  .screen iframe {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    transition: opacity 0.18s ease;
+  }
+
+  /* The app re-lays itself out mid-morph; hide that and fade it back in at the new size. */
+  .device.fading iframe { opacity: 0; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .device, .device * { transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="stage">
+  <div class="head">
+    <div class="seg" role="group" aria-label="Preview size">
+      <button type="button" data-view="phone" aria-pressed="true">Phone</button>
+      <button type="button" data-view="desktop" aria-pressed="false">Desktop</button>
+    </div>
+    <p id="about"></p>
+  </div>
+  <div class="slot" id="slot">
+    <div class="device" id="device">
+      <div class="chrome" aria-hidden="true"><span class="lights"><i></i><i></i><i></i></span><span class="url" id="url"></span></div>
+      <div class="status" aria-hidden="true"><span>9:41</span><span>100%</span></div>
+      <div class="notch" aria-hidden="true"></div>
+      <div class="screen"><iframe id="app" title="App preview"></iframe></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // ---- Per template: the only lines to change ----
+  const APP_NAME = 'User Agent Parser';
+  const REPO_URL = 'https://github.com/apiverve/user-agent-parser-nextjs-tutorial';
+  const SCREEN_BG = '#f3f0ff'; // the app's page background, shown behind the phone's status bar
+  // -------------------------------------------------
+
+  const PHONE = { w: 390, h: 820 };
+  const DESKTOP_MAX = 1180;
+  const FADE_MS = 180;
+  const MORPH_MS = 520;
+
+  const params = new URLSearchParams(location.search);
+  let view = params.get('view') === 'desktop' ? 'desktop' : 'phone';
+  params.delete('view');
+  const appUrl = '/' + (params.toString() ? '?' + params : '');
+
+  // On a real phone, the frame is in the way: go straight to the app.
+  if (matchMedia('(max-width: 560px)').matches) location.replace(appUrl);
+
+  const device = document.getElementById('device');
+  const slot = document.getElementById('slot');
+  const app = document.getElementById('app');
+  const buttons = document.querySelectorAll('[data-view]');
+
+  document.getElementById('about').innerHTML =
+    `A live demo of the APIVerve ${APP_NAME} template. <a href="${REPO_URL}" target="_blank" rel="noopener noreferrer">Deploy your own copy</a>.`;
+  document.getElementById('url').textContent = location.host;
+  device.style.setProperty('--screen', SCREEN_BG);
+  app.src = appUrl;
+
+  // The phone is laid out at real phone size and scaled to fit, so the app inside renders
+  // exactly as on a device. The browser frame fills the room instead.
+  function layout() {
+    const w = slot.clientWidth;
+    const h = slot.clientHeight;
+    if (view === 'phone') {
+      device.style.width = PHONE.w + 'px';
+      device.style.height = PHONE.h + 'px';
+      device.style.transform = `scale(${Math.min(1, h / PHONE.h)})`;
+    } else {
+      device.style.width = Math.min(DESKTOP_MAX, w) + 'px';
+      device.style.height = h + 'px';
+      device.style.transform = 'scale(1)';
+    }
+    device.classList.toggle('desktop', view === 'desktop');
+    buttons.forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.view === view)));
+    hideScrollbar();
+  }
+
+  // Phones overlay their scrollbars, so hide the desktop one while the app is in the phone.
+  // A <style> tag, not an attribute on <html>: frameworks that hydrate the page (React) treat
+  // a changed attribute as a mismatch, but leave added head elements alone.
+  function hideScrollbar() {
+    const doc = app.contentDocument;
+    if (!doc?.head) return;
+    let tag = doc.getElementById('showcase-scrollbar');
+    if (!tag) {
+      tag = doc.createElement('style');
+      tag.id = 'showcase-scrollbar';
+      doc.head.appendChild(tag);
+    }
+    tag.textContent = view === 'phone' ? 'html { scrollbar-width: none; } html::-webkit-scrollbar { display: none; }' : '';
+  }
+  app.addEventListener('load', hideScrollbar);
+
+  let timers = [];
+  function switchTo(next) {
+    if (next === view) return;
+    timers.forEach(clearTimeout);
+    // Fade the app out, morph the frame, then fade the re-laid-out app back in.
+    device.classList.add('fading');
+    timers = [
+      setTimeout(() => { view = next; layout(); }, FADE_MS),
+      setTimeout(() => device.classList.remove('fading'), FADE_MS + MORPH_MS)
+    ];
+  }
+
+  buttons.forEach((b) => b.addEventListener('click', () => switchTo(b.dataset.view)));
+  new ResizeObserver(layout).observe(slot);
+  layout();
+</script>
+</body>
+</html>
