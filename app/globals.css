@@ -55,6 +55,7 @@ textarea { width: 100%; border: 1px solid var(--line); border-radius: 12px; padd
 .tile { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 14px; }
 .tile span { display: block; font-size: 12px; color: var(--ink-soft); }
 .tile strong { display: block; margin-top: 4px; font-size: 16px; overflow-wrap: anywhere; }
+.tile .locked { display: inline-block; margin-top: 6px; font-size: 13px; color: var(--ink-soft); }
 
 .fresh { display: flex; flex-wrap: wrap; gap: 4px 12px; align-items: baseline; border-radius: 14px; padding: 12px 14px; }
 .fresh.ok { background: #e1f6ef; color: #0f6e54; }

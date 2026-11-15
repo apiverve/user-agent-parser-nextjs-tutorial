@@ -173,7 +173,14 @@ export default function UaApp() {
             </div>
             <div className="tile">
               <span>Engine</span>
-              <strong>{data.engine?.name ? named(data.engine) : '—'}</strong>
+              {data.engine?.name ? (
+                <strong>{named(data.engine)}</strong>
+              ) : data.isBot ? (
+                <strong>—</strong>
+              ) : (
+                // Engine is a paid field: on a free key it comes back empty.
+                <a className="locked" href="https://apiverve.com/pricing" target="_blank" rel="noreferrer">Premium field</a>
+              )}
             </div>
           </div>
 
